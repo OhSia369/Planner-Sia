@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendário Anual</title>
+
+<style>
+/* ================= FONTES ================= */
+@font-face {
+  font-family: "Arabic City";
+  src: url("fonts/ArabicCity-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Arabic City Outline";
+  src: url("fonts/ArabicCity-Regular.ttf") format("truetype");
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Inter, sans-serif;
+  background: linear-gradient(
+    135deg,
+    #C9D1DA 0%,
+    #C0C7D1 20%,
+    #B7BFC9 40%,
+    #AEB7C2 60%,
+    #A5AFBB 80%,
+    #9DA8B4 100%
+  );
+}
+
+/* ================= ANUAL ================= */
+.calendar-wrapper-shrink {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(0.88);
+  transform-origin: top center;
+  position: relative;
+}
+
+/* Botão olho - canto superior esquerdo */
+.toggle-btn {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  z-index: 100;
+}
+
+.toggle-btn:hover {
+  transform: scale(1.15);
+}
+
+.toggle-btn svg {
+  width: 32px;
+  height: 32px;
+}
+
+.ano {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  margin-top: 6px;
+  line-height: 1;
+  font-family: "Arabic City", sans-serif;
+  color: #fff;
+}
+
+.grid {
+  width: 100%;
+  height: calc(100% - 70px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  column-gap: 14px;
+  row-gap: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.mes {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.mes:active {
+  transform: scale(0.95);
+}
+
+.header-mes {
+  height: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+}
+
+.titulo-mes {
+  font-size: 18px;
+  font-family: "Arabic City Outline";
+  color: transparent;
+  -webkit-text-stroke: 0.6px #fff;
+  text-stroke: 0.6px #fff;
+  line-height: 18px;
+}
+
+.soma-acumulada {
+  font-family: "Arabic City";
+  font-size: 7px;
+  line-height: 6px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 18px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.soma-acumulada.visible {
+  opacity: 1;
+}
+
+/* DIAS - sempre com proporção completa */
+.dias {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.4fr repeat(7, 1fr);
+  font-size: 6.5px;
+  font-family: "Arabic City";
+  text-align: center;
+  color: #fff;
+  row-gap: 4px;
+  column-gap: 1.5px;
+}
+
+.dia {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1px;
+}
+
+.domingo {
+  font-weight: 700;
+}
+
+.vazio {
+  opacity: 0;
+}
+
+.dow {
+  text-align: center;
+  text-decoration: underline;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-size: 6px;
+}
+
+.dow.visible {
+  opacity: 1;
+}
+
+.week {
+  font-style: italic;
+  opacity: 0;
+  text-align: center;
+  transition: opacity 0.3s ease;
+  font-size: 6px;
+}
+
+.week.visible {
+  opacity: 0.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="calendar-wrapper-shrink">
+  <div class="toggle-btn" id="toggleBtn">
+    <svg viewBox="0 0 32 32" fill="none" stroke="#4B6CB7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="16" cy="16" rx="12" ry="8"/>
+      <circle cx="16" cy="16" r="3.5" fill="#4B6CB7"/>
+    </svg>
+  </div>
+  <div class="ano" id="anoDisplay"></div>
+  <div class="grid" id="gridAnual"></div>
+</div>
+
+<script>
+/* ================= UTILS ================= */
+function diasNoMes(m, a) {
+  return new Date(a, m, 0).getDate();
+}
+
+function doisDigitos(n) {
+  return String(n).padStart(2, "0");
+}
+
+function semanaAno(d) {
+  const inicio = new Date(d.getFullYear(), 0, 1);
+  return Math.floor(((d - inicio) / 86400000 + inicio.getDay()) / 7) + 1;
+}
+
+/* ================= STATE ================= */
+let anoAtual = 2025;
+let detailMode = false;
+
+/* ================= RENDER ANUAL ================= */
+function renderAnual() {
+  const anoDiv = document.getElementById("anoDisplay");
+  anoDiv.innerHTML = `${String(anoAtual).slice(0, 2)}<br>${String(anoAtual).slice(2, 4)}`;
+
+  const grid = document.getElementById("gridAnual");
+  grid.innerHTML = "";
+
+  let acumulado = 0;
+
+  for (let mes = 1; mes <= 12; mes++) {
+    const cel = document.createElement("div");
+    cel.className = "mes";
+    cel.dataset.mes = mes - 1;
+
+    const totalMes = diasNoMes(mes, anoAtual);
+    acumulado += totalMes;
+
+    /* HEADER */
+    const header = document.createElement("div");
+    header.className = "header-mes";
+
+    const titulo = document.createElement("div");
+    titulo.className = "titulo-mes";
+    titulo.textContent = doisDigitos(mes);
+
+    const soma = document.createElement("div");
+    soma.className = `soma-acumulada ${detailMode ? 'visible' : ''}`;
+    const acumuladoStr = String(acumulado).padStart(2, "0");
+    for (let c of acumuladoStr) {
+      const linha = document.createElement("div");
+      linha.textContent = c;
+      soma.appendChild(linha);
+    }
+
+    header.appendChild(titulo);
+    header.appendChild(soma);
+
+    /* DIAS - sempre com grid completo */
+    const diasDiv = document.createElement("div");
+    diasDiv.className = "dias";
+
+    // Coluna vazia + cabeçalho dias da semana
+    diasDiv.appendChild(document.createElement("div"));
+    ["1","2","3","4","5","6","7"].forEach(d => {
+      const h = document.createElement("div");
+      h.className = `dow ${detailMode ? 'visible' : ''}`;
+      h.textContent = d;
+      diasDiv.appendChild(h);
+    });
+
+    let data = new Date(anoAtual, mes - 1, 1);
+    while (data.getMonth() === mes - 1) {
+      const sn = document.createElement("div");
+      sn.className = `week ${detailMode ? 'visible' : ''}`;
+      sn.textContent = semanaAno(data);
+      diasDiv.appendChild(sn);
+
+      let usada = false;
+      for (let i = 0; i < 7; i++) {
+        const c = document.createElement("div");
+        c.className = "dia";
+
+        if (data.getDay() === i && data.getMonth() === mes - 1) {
+          c.textContent = doisDigitos(data.getDate());
+          if (i === 0) c.classList.add("domingo");
+          data.setDate(data.getDate() + 1);
+          usada = true;
+        } else {
+          c.classList.add("vazio");
+        }
+        diasDiv.appendChild(c);
+      }
+
+      if (!usada) {
+        sn.remove();
+        for (let i = 0; i < 7; i++) diasDiv.lastChild.remove();
+      }
+    }
+
+    cel.appendChild(header);
+    cel.appendChild(diasDiv);
+    grid.appendChild(cel);
+
+    // Duplo clique para abrir mensal
+    let lastTap = 0;
+    cel.addEventListener("click", (e) => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        // Redirecionar para calendário mensal
+        const mes = parseInt(cel.dataset.mes);
+        window.location.href = `calendario-mensal.html?ano=${anoAtual}&mes=${mes}`;
+      }
+      lastTap = now;
+    });
+  }
+}
+
+/* ================= TOGGLE DETALHES ================= */
+document.getElementById("toggleBtn").addEventListener("click", () => {
+  detailMode = !detailMode;
+  renderAnual();
+});
+
+/* ================= SWIPE ANUAL ================= */
+let startX = 0;
+const sensibilidade = 40;
+
+document.body.addEventListener("touchstart", e => {
+  startX = e.touches[0].clientX;
+});
+
+document.body.addEventListener("touchend", e => {
+  const diff = e.changedTouches[0].clientX - startX;
+  if (diff < -sensibilidade) { anoAtual--; renderAnual(); }
+  if (diff > sensibilidade) { anoAtual++; renderAnual(); }
+});
+
+document.body.addEventListener("mousedown", e => {
+  startX = e.clientX;
+});
+
+document.body.addEventListener("mouseup", e => {
+  const diff = e.clientX - startX;
+  if (diff < -sensibilidade) { anoAtual--; renderAnual(); }
+  if (diff > sensibilidade) { anoAtual++; renderAnual(); }
+});
+
+/* ================= INIT ================= */
+renderAnual();
+</script>
+
+</body>
+</html>
