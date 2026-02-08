@@ -193,7 +193,7 @@ function renderMensal() {
 
 /* ================= NAVEGAÇÃO ================= */
 function voltarAnual() {
-  window.location.href = `calendario-anual.html`;
+  window.location.href = `calendarioanual.html`;
 }
 
 /* ================= DUPLO CLIQUE NO PAINEL MENSAL VOLTA AO ANUAL ================= */
@@ -223,12 +223,12 @@ panel.addEventListener("touchend", e => {
   if (diff < -sensibilidade) {
     mesAtual++;
     if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
-    window.location.href = `calendario-mensal.html?ano=${anoAtual}&mes=${mesAtual}`;
+    window.location.href = `calendariomensal.html?ano=${anoAtual}&mes=${mesAtual}`;
   }
   if (diff > sensibilidade) {
     mesAtual--;
     if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
-    window.location.href = `calendario-mensal.html?ano=${anoAtual}&mes=${mesAtual}`;
+    window.location.href = `calendariomensal.html?ano=${anoAtual}&mes=${mesAtual}`;
   }
 });
 
@@ -243,12 +243,12 @@ panel.addEventListener("mouseup", e => {
   if (diff < -sensibilidade) {
     mesAtual++;
     if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
-    window.location.href = `calendario-mensal.html?ano=${anoAtual}&mes=${mesAtual}`;
+    window.location.href = `calendariomensal.html?ano=${anoAtual}&mes=${mesAtual}`;
   }
   if (diff > sensibilidade) {
     mesAtual--;
     if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
-    window.location.href = `calendario-mensal.html?ano=${anoAtual}&mes=${mesAtual}`;
+    window.location.href = `calendariomensal.html?ano=${anoAtual}&mes=${mesAtual}`;
   }
 });
 
