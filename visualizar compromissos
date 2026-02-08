@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda Semanal</title>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      #d4dce3 0%,
+      #ccd5dc 15%,
+      #c4cdd5 30%,
+      #bcc7cf 45%,
+      #b5c1c9 60%,
+      #acb8c0 75%,
+      #a3afb7 90%,
+      #9aa6ae 100%
+    );
+    overflow: hidden;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  text {
+    fill: #4B6CB7;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    dominant-baseline: middle;
+    opacity: 0.85;
+  }
+
+  .compromisso-text {
+    fill: #333;
+    font-size: 10px;
+    font-family: Arial, sans-serif;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  .linha {
+    stroke: #6b7985;
+    stroke-width: 1;
+    opacity: 0.6;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .borda {
+    stroke: #6b7985;
+    stroke-width: 1;
+    fill: none;
+    opacity: 0.6;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .area-clicavel {
+    fill: transparent;
+    cursor: pointer;
+  }
+
+  #modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.35);
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  #modal.ativo {
+    display: block;
+  }
+
+  #modalVisualizar {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.35);
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 1001;
+    min-width: 300px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  #modalVisualizar.ativo {
+    display: block;
+  }
+
+  #overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    backdrop-filter: blur(3px);
+  }
+
+  #overlay.ativo {
+    display: block;
+  }
+
+  h3 {
+    color: #4B6CB7;
+    margin-top: 0;
+  }
+
+  .tarefa-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 5px;
+    margin-bottom: 5px;
+  }
+
+  .tarefa-checkbox {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+    margin-right: 10px;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .tarefa-checkbox.selected {
+    background: #4F46E5;
+    border-color: #4F46E5;
+  }
+
+  .tarefa-texto {
+    flex: 1;
+    color: #333;
+    font-size: 14px;
+  }
+
+  .tarefa-delete {
+    color: #f55;
+    cursor: pointer;
+    padding: 5px 10px;
+  }
+
+  .input-nova-tarefa {
+    width: 100%;
+    background: rgba(255,255,255,0.5);
+    border: none;
+    color: #333;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+
+  .input-nova-tarefa::placeholder {
+    color: rgba(0,0,0,0.4);
+  }
+
+  .opcoes-container {
+    display: none;
+    background: rgba(255,255,255,0.3);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .opcoes-container.ativo {
+    display: block;
+  }
+
+  .opcao-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.2s;
+    background: rgba(255,255,255,0.3);
+  }
+
+  .opcao-item:hover {
+    background: rgba(255,255,255,0.5);
+  }
+
+  .opcao-radio {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+    margin-right: 10px;
+    background: transparent;
+  }
+
+  .opcao-radio.selected {
+    background: #4F46E5;
+    border-color: #4F46E5;
+  }
+
+  .opcao-texto {
+    color: #333;
+    font-size: 14px;
+  }
+
+  .info-text {
+    color: rgba(0,0,0,0.6);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .btn {
+    background: rgba(255,255,255,0.4);
+    border: none;
+    color: #333;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+    margin-top: 5px;
+  }
+
+  .btn-add {
+    background: #4F46E5;
+    color: #fff;
+  }
+
+  .btn-visualizar {
+    background: #4F46E5;
+    color: #fff;
+  }
+
+  .tarefa-lista-completa {
+    color: #333;
+    padding: 8px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 5px;
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+
+<body>
+
+<svg viewBox="0 0 140 170" preserveAspectRatio="none" id="mainSvg">
+  <g transform="translate(6,6)">
+    <g transform="scale(0.457,0.315)" id="cardsContainer">
+    </g>
+  </g>
+</svg>
+
+<div id="overlay"></div>
+
+<div id="modal">
+  <h3>Dia <span id="modalDia"></span></h3>
+  <div id="listaTarefas"></div>
+  <input type="text" id="inputNovaTarefa" class="input-nova-tarefa" placeholder="Adicionar... (separe opções com vírgula)">
+  <div id="opcoesContainer" class="opcoes-container"></div>
+  <button class="btn btn-add" onclick="adicionarTarefa()">Adicionar</button>
+  <button class="btn btn-visualizar" onclick="abrirVisualizacao()">Ver Completo</button>
+  <button class="btn" onclick="fecharModal()">Fechar</button>
+</div>
+
+<div id="modalVisualizar">
+  <h3>Dia <span id="visualizarDia"></span> - Todas as Tarefas</h3>
+  <div id="conteudoCompleto"></div>
+  <button class="btn" onclick="fecharVisualizacao()">Voltar</button>
+</div>
+
+<script>
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+  
+  const linhasH = [48, 63.43, 78.86, 94.29, 109.71, 125.14, 140.57, 156];
+  const ajuste = 2;
+  const yPositions = [
+    (linhasH[0] + linhasH[1]) / 2 + ajuste,
+    (linhasH[1] + linhasH[2]) / 2 + ajuste,
+    (linhasH[2] + linhasH[3]) / 2 + ajuste,
+    (linhasH[3] + linhasH[4]) / 2 + ajuste,
+    (linhasH[4] + linhasH[5]) / 2 + ajuste,
+    (linhasH[5] + linhasH[6]) / 2 + ajuste,
+    (linhasH[6] + linhasH[7]) / 2 + ajuste
+  ];
+  
+  const xEsquerda = 11.5;
+  const xDireita = 128.5;
+  const cardPositions = [[0, 0], [140, 0], [0, 170], [140, 170], [0, 340], [140, 340]];
+  
+  let compromissos = {};
+  let diaAtual = null;
+  let opcoesDisponiveis = [];
+  let opcaoSelecionada = null;
+  
+  const saved = localStorage.getItem('compromissos');
+  if (saved) compromissos = JSON.parse(saved);
+  
+  function abrirModal(dia) {
+    diaAtual = dia;
+    document.getElementById('modalDia').textContent = dia;
+    document.getElementById('inputNovaTarefa').value = '';
+    renderizarTarefas();
+    document.getElementById('modal').classList.add('ativo');
+    document.getElementById('overlay').classList.add('ativo');
+  }
+  
+  function fecharModal() {
+    document.getElementById('modal').classList.remove('ativo');
+    document.getElementById('overlay').classList.remove('ativo');
+    document.getElementById('opcoesContainer').classList.remove('ativo');
+    atualizarTextos();
+    diaAtual = null;
+  }
+
+  function abrirVisualizacao() {
+    const tarefas = compromissos[diaAtual] || [];
+    document.getElementById('visualizarDia').textContent = diaAtual;
+    const container = document.getElementById('conteudoCompleto');
+    container.innerHTML = '';
+    
+    if (tarefas.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'tarefa-lista-completa';
+      div.textContent = 'Nenhuma tarefa registrada.';
+      container.appendChild(div);
+    } else {
+      tarefas.forEach((tarefa, i) => {
+        const div = document.createElement('div');
+        div.className = 'tarefa-lista-completa';
+        div.textContent = `${i + 1}. ${tarefa.texto}`;
+        container.appendChild(div);
+      });
+    }
+    
+    document.getElementById('modal').classList.remove('ativo');
+    document.getElementById('modalVisualizar').classList.add('ativo');
+  }
+
+  function fecharVisualizacao() {
+    document.getElementById('modalVisualizar').classList.remove('ativo');
+    document.getElementById('modal').classList.add('ativo');
+  }
+  
+  function renderizarTarefas() {
+    const lista = document.getElementById('listaTarefas');
+    lista.innerHTML = '';
+    const tarefas = compromissos[diaAtual] || [];
+    
+    tarefas.forEach((tarefa, i) => {
+      const div = document.createElement('div');
+      div.className = 'tarefa-item';
+      
+      const check = document.createElement('div');
+      check.className = 'tarefa-checkbox' + (tarefa.selected ? ' selected' : '');
+      check.onclick = () => { compromissos[diaAtual][i].selected = !compromissos[diaAtual][i].selected; localStorage.setItem('compromissos', JSON.stringify(compromissos)); renderizarTarefas(); atualizarTextos(); };
+      
+      const txt = document.createElement('div');
+      txt.className = 'tarefa-texto';
+      txt.textContent = tarefa.texto;
+      
+      const del = document.createElement('span');
+      del.className = 'tarefa-delete';
+      del.textContent = '✕';
+      del.onclick = () => { compromissos[diaAtual].splice(i, 1); if (compromissos[diaAtual].length === 0) delete compromissos[diaAtual]; localStorage.setItem('compromissos', JSON.stringify(compromissos)); renderizarTarefas(); atualizarTextos(); };
+      
+      div.appendChild(check);
+      div.appendChild(txt);
+      div.appendChild(del);
+      lista.appendChild(div);
+    });
+  }
+  
+  function adicionarTarefa() {
+    const txt = document.getElementById('inputNovaTarefa').value.trim();
+    if (txt) {
+      const opcoes = txt.split(',').map(o => o.trim()).filter(o => o);
+      
+      if (opcoes.length > 1) {
+        mostrarOpcoes(opcoes);
+      } else if (opcoes.length === 1) {
+        if (!compromissos[diaAtual]) compromissos[diaAtual] = [];
+        compromissos[diaAtual].push({ texto: opcoes[0], selected: false });
+        localStorage.setItem('compromissos', JSON.stringify(compromissos));
+        document.getElementById('inputNovaTarefa').value = '';
+        renderizarTarefas();
+        atualizarTextos();
+      }
+    }
+  }
+  
+  function mostrarOpcoes(opcoes) {
+    opcoesDisponiveis = opcoes;
+    opcaoSelecionada = null;
+    const container = document.getElementById('opcoesContainer');
+    container.innerHTML = '<div class="info-text">Escolha qual opção deseja adicionar:</div>';
+    
+    opcoes.forEach((opcao, i) => {
+      const div = document.createElement('div');
+      div.className = 'opcao-item';
+      
+      const radio = document.createElement('div');
+      radio.className = 'opcao-radio';
+      radio.id = `radio-${i}`;
+      
+      const texto = document.createElement('div');
+      texto.className = 'opcao-texto';
+      texto.textContent = opcao;
+      
+      div.onclick = () => selecionarOpcao(i);
+      div.appendChild(radio);
+      div.appendChild(texto);
+      container.appendChild(div);
+    });
+    
+    container.classList.add('ativo');
+  }
+  
+  function selecionarOpcao(index) {
+    opcaoSelecionada = index;
+    
+    document.querySelectorAll('.opcao-radio').forEach((radio, i) => {
+      if (i === index) {
+        radio.classList.add('selected');
+      } else {
+        radio.classList.remove('selected');
+      }
+    });
+    
+    if (!compromissos[diaAtual]) compromissos[diaAtual] = [];
+    compromissos[diaAtual].push({ texto: opcoesDisponiveis[index], selected: false });
+    localStorage.setItem('compromissos', JSON.stringify(compromissos));
+    
+    setTimeout(() => {
+      document.getElementById('inputNovaTarefa').value = '';
+      document.getElementById('opcoesContainer').classList.remove('ativo');
+      renderizarTarefas();
+      atualizarTextos();
+    }, 300);
+  }
+  
+  function atualizarTextos() {
+    document.querySelectorAll('.compromisso-text').forEach(text => {
+      const dia = text.getAttribute('data-dia');
+      const tarefas = compromissos[dia] || [];
+      const sel = tarefas.filter(t => t.selected);
+      
+      if (sel.length === 0) text.textContent = '';
+      else if (sel.length === 1) text.textContent = sel[0].texto.length > 15 ? '...' : sel[0].texto;
+      else text.textContent = '...';
+    });
+  }
+  
+  function criarCard(diasDados, posX, posY) {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${posX}, ${posY})`);
+    
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', '1');
+    rect.setAttribute('y', '1');
+    rect.setAttribute('width', '138');
+    rect.setAttribute('height', '168');
+    rect.setAttribute('rx', '22');
+    rect.setAttribute('ry', '22');
+    rect.setAttribute('class', 'borda');
+    g.appendChild(rect);
+    
+    const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line1.setAttribute('x1', '22');
+    line1.setAttribute('y1', '1');
+    line1.setAttribute('x2', '22');
+    line1.setAttribute('y2', '169');
+    line1.setAttribute('class', 'linha');
+    g.appendChild(line1);
+    
+    const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line2.setAttribute('x1', '118');
+    line2.setAttribute('y1', '1');
+    line2.setAttribute('x2', '118');
+    line2.setAttribute('y2', '169');
+    line2.setAttribute('class', 'linha');
+    g.appendChild(line2);
+    
+    linhasH.forEach(y => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '1');
+      line.setAttribute('y1', y);
+      line.setAttribute('x2', '139');
+      line.setAttribute('y2', y);
+      line.setAttribute('class', 'linha');
+      g.appendChild(line);
+    });
+    
+    for (let i = 0; i < 7; i++) {
+      const dado = diasDados[i];
+      if (dado !== null) {
+        const textLeft = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textLeft.setAttribute('x', xEsquerda);
+        textLeft.setAttribute('y', yPositions[i]);
+        textLeft.setAttribute('text-anchor', 'middle');
+        textLeft.setAttribute('alignment-baseline', 'middle');
+        textLeft.textContent = String(dado.dia).padStart(2, '0');
+        g.appendChild(textLeft);
+        
+        const textRight = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textRight.setAttribute('x', xDireita);
+        textRight.setAttribute('y', yPositions[i]);
+        textRight.setAttribute('text-anchor', 'middle');
+        textRight.setAttribute('alignment-baseline', 'middle');
+        textRight.textContent = dado.diaSemana.toString();
+        g.appendChild(textRight);
+        
+        const area = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        area.setAttribute('x', '22');
+        area.setAttribute('y', linhasH[i]);
+        area.setAttribute('width', '96');
+        area.setAttribute('height', linhasH[i + 1] - linhasH[i]);
+        area.setAttribute('class', 'area-clicavel');
+        area.addEventListener('click', () => abrirModal(dado.dia));
+        g.appendChild(area);
+        
+        const textComp = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textComp.setAttribute('x', '70');
+        textComp.setAttribute('y', yPositions[i]);
+        textComp.setAttribute('text-anchor', 'middle');
+        textComp.setAttribute('alignment-baseline', 'middle');
+        textComp.setAttribute('class', 'compromisso-text');
+        textComp.setAttribute('data-dia', dado.dia);
+        
+        const tarefas = compromissos[dado.dia] || [];
+        const sel = tarefas.filter(t => t.selected);
+        if (sel.length === 0) textComp.textContent = '';
+        else if (sel.length === 1) textComp.textContent = sel[0].texto.length > 15 ? '...' : sel[0].texto;
+        else textComp.textContent = '...';
+        
+        g.appendChild(textComp);
+      }
+    }
+    return g;
+  }
+  
+  function getSemanasDoMes(mes, ano) {
+    const semanas = [];
+    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    let dia = 1;
+    
+    while (dia <= diasNoMes) {
+      let semanaAtual = new Array(7).fill(null);
+      for (let i = 0; i < 7 && dia <= diasNoMes; i++) {
+        const data = new Date(ano, mes, dia);
+        semanaAtual[i] = { dia: dia, diaSemana: data.getDay() + 1 };
+        dia++;
+      }
+      semanas.push(semanaAtual);
+    }
+    
+    while (semanas.length < 6) semanas.push(new Array(7).fill(null));
+    return semanas;
+  }
+  
+  const container = document.getElementById('cardsContainer');
+  const semanas = getSemanasDoMes(mesAtual, anoAtual);
+  
+  for (let i = 0; i < 6; i++) {
+    const card = criarCard(semanas[i], cardPositions[i][0], cardPositions[i][1]);
+    container.appendChild(card);
+  }
+  
+  document.getElementById('overlay').addEventListener('click', fecharModal);
+  document.getElementById('inputNovaTarefa').addEventListener('keypress', (e) => { if (e.key === 'Enter') adicionarTarefa(); });
+</script>
+
+</body>
+</html>
